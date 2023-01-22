@@ -53,12 +53,14 @@ public final class CodFrame extends JavaPlugin implements Listener {
     }
 
     public boolean claimProtection(ItemFrame frame, UUID uuid) {
-        if (queryProtection(frame).isPresent()) {
-            return false;
-        }
-        frame.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, uuid.toString());
+        // Whether the protection is exists or not, add basic protection first to avoid bug
         frame.setFixed(true);
         frame.setInvulnerable(true);
+        if (queryProtection(frame).isPresent()) { // already has an owner
+            return false;
+        }
+        // add owner key for this player
+        frame.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, uuid.toString());
         return true;
     }
 
@@ -87,20 +89,18 @@ public final class CodFrame extends JavaPlugin implements Listener {
     }
 
     public void playerDoProtection(Player player, ItemFrame frame) {
-        if (claimProtection(frame, player.getUniqueId())) {
+        if (claimProtection(frame, player.getUniqueId())) { // success add
             player.sendMessage(MINI_MESSAGE.deserialize(getConfig().getString("messages.frame.success-set", "")));
-        } else {
+        } else { // already has an owner key
             Optional<UUID> uuid = queryProtection(frame);
-            if (uuid.isPresent()) {
-                if (uuid.get().equals(player.getUniqueId()) || player.hasPermission("codframe.admin")) {
-                    removeProtection(frame, player.getUniqueId());
-                    player.sendMessage(MINI_MESSAGE.deserialize(getConfig().getString("messages.frame.success-remove", "")));
-                } else {
-                    String message = getConfig()
-                            .getString("messages.frame.failed-other-protected", "")
-                            .replace("<0>", getPlayerName(uuid));
-                    player.sendMessage(MINI_MESSAGE.deserialize(message));
-                }
+            if (uuid.get().equals(player.getUniqueId()) || player.hasPermission("codframe.admin")) {
+                removeProtection(frame, player.getUniqueId());
+                player.sendMessage(MINI_MESSAGE.deserialize(getConfig().getString("messages.frame.success-remove", "")));
+            } else {
+                String message = getConfig()
+                        .getString("messages.frame.failed-other-protected", "")
+                        .replace("<0>", getPlayerName(uuid));
+                player.sendMessage(MINI_MESSAGE.deserialize(message));
             }
         }
     }
