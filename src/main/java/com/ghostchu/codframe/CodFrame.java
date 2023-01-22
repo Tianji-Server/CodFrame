@@ -18,6 +18,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -157,7 +158,7 @@ public final class CodFrame extends JavaPlugin implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void interactFrame(PlayerInteractEntityEvent event) {
-        if (event.getRightClicked() instanceof ItemFrame frame) {
+        if (event.getRightClicked() instanceof ItemFrame frame && event.getHand() == EquipmentSlot.HAND) {
             Optional<UUID> uuid = queryProtection(frame);
             if (event.getPlayer().isSneaking()) { // Sneak Toggle Protection
                 event.setCancelled(true);
