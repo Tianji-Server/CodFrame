@@ -5,6 +5,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -85,24 +86,31 @@ public final class CodFrame extends JavaPlugin implements Listener {
         }
     }
 
+    public void playerDoProtection(Player player, ItemFrame frame) {
+        if (claimProtection(frame, player.getUniqueId())) {
+            player.sendMessage(MINI_MESSAGE.deserialize(getConfig().getString("messages.frame.success-set", "")));
+        } else {
+            Optional<UUID> uuid = queryProtection(frame);
+            if (uuid.isPresent()) {
+                if (uuid.get().equals(player.getUniqueId()) || player.hasPermission("codframe.admin")) {
+                    removeProtection(frame, player.getUniqueId());
+                    player.sendMessage(MINI_MESSAGE.deserialize(getConfig().getString("messages.frame.success-remove", "")));
+                } else {
+                    String message = getConfig()
+                            .getString("messages.frame.failed-other-protected", "")
+                            .replace("<0>", getPlayerName(uuid));
+                    player.sendMessage(MINI_MESSAGE.deserialize(message));
+                }
+            }
+        }
+    }
+
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (sender instanceof Player player) {
             Entity target = player.getTargetEntity(4);
             if (target instanceof ItemFrame frame) {
-                if (claimProtection(frame, player.getUniqueId())) {
-                    player.sendMessage(MINI_MESSAGE.deserialize(getConfig().getString("messages.frame.success-set", "")));
-                } else {
-                    Optional<UUID> uuid = queryProtection(frame);
-                    if (uuid.isPresent()) {
-                        if (uuid.get().equals(player.getUniqueId()) || player.hasPermission("codframe.admin")) {
-                            removeProtection(frame, player.getUniqueId());
-                            player.sendMessage(MINI_MESSAGE.deserialize(getConfig().getString("messages.frame.success-remove", "")));
-                        } else {
-                            player.sendMessage(MINI_MESSAGE.deserialize(getConfig().getString("messages.frame.failed-other-protected", "")));
-                        }
-                    }
-                }
+                playerDoProtection(player, frame);
             } else {
                 player.sendMessage(MINI_MESSAGE.deserialize(getConfig().getString("messages.frame.failed-invalid", "")));
             }
@@ -150,8 +158,18 @@ public final class CodFrame extends JavaPlugin implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void interactFrame(PlayerInteractEntityEvent event) {
         if (event.getRightClicked() instanceof ItemFrame frame) {
-            if (queryProtection(frame).isPresent()) {
+            Optional<UUID> uuid = queryProtection(frame);
+            if (event.getPlayer().isSneaking()) { // Sneak Toggle Protection
                 event.setCancelled(true);
+                playerDoProtection(event.getPlayer(), frame);
+            } else if (uuid.isPresent()) { // Preview normally
+                event.setCancelled(true);
+                event.getPlayer().sendActionBar(
+                        MINI_MESSAGE.deserialize(getConfig()
+                                .getString("messages.general.owner-info", "")
+                                .replace("<0>", getPlayerName(uuid))
+                        )
+                );
                 if (frame.getItem().hasItemMeta()) {
                     openBook(frame, event.getPlayer());
                     sendChatPreview(frame.getItem(), event.getPlayer());
@@ -162,5 +180,20 @@ public final class CodFrame extends JavaPlugin implements Listener {
 
     private void sendChatPreview(ItemStack item, Player player) {
         player.sendMessage(MINI_MESSAGE.deserialize(getConfig().getString("messages.general.hover-preview", "")).hoverEvent(item.asHoverEvent()));
+    }
+
+    private @NotNull String getPlayerName(Optional<UUID> uuid) {
+        // try to replace with owner username
+        Player owner = Bukkit.getPlayer(uuid.get());
+        if (owner != null) {
+            return owner.getName();
+        } else {
+            OfflinePlayer offlineOwner = Bukkit.getOfflinePlayer(uuid.get());
+            if (offlineOwner.getName() != null) {
+                return offlineOwner.getName();
+            } else {
+                return "???";
+            }
+        }
     }
 }
