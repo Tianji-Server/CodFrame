@@ -1,7 +1,7 @@
 messages:
   general:
     hover-preview: "<aqua>Hover your mouse cursor on this text to preview this item."
-    owner-info: "<gray>This frame has been protect by <0>."
+    owner-info: "<gray>This frame has been protected by <0>."
   book:
     anonymous: "Anonymous"
     no-title: "No Title"
