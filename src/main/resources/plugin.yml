@@ -7,3 +7,5 @@ commands:
   codframe:
     description: Lock or unlock an ItemFrame
     usage: /codframe
+    aliases:
+      - cf
