@@ -3,6 +3,7 @@ version: '${project.version}'
 main: com.ghostchu.codframe.CodFrame
 api-version: 1.16
 authors: [ Ghost_chu, MagmaBlock ]
+folia-supported: true
 commands:
   codframe:
     description: Lock or unlock an ItemFrame
