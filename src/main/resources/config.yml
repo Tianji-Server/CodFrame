@@ -9,4 +9,4 @@ messages:
     success-set: "<green>成功保护该物品展示框."
     success-remove: "<green>已成功移除该物品展示框的保护."
     failed-other-protected: "<red>保护该物品展示框失败 -- 这个物品展示框已经被<0>保护."
-    failed-invalid: "<red>只能保护物品展示框!"
+    failed-invalid: "<red>您面对的方块不是物品展示框，请面对物品展示框后再次输入保护指令!"
