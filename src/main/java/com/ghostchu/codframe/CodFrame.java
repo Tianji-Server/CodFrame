@@ -160,10 +160,13 @@ public final class CodFrame extends JavaPlugin implements Listener {
     public void interactFrame(PlayerInteractEntityEvent event) {
         if (event.getRightClicked() instanceof ItemFrame frame && event.getHand() == EquipmentSlot.HAND) {
             Optional<UUID> uuid = queryProtection(frame);
+            /*
             if (event.getPlayer().isSneaking()) { // Sneak Toggle Protection
                 event.setCancelled(true);
                 playerDoProtection(event.getPlayer(), frame);
-            } else if (uuid.isPresent()) { // Preview normally
+            }
+            */
+            if (uuid.isPresent()) { // Preview normally
                 event.setCancelled(true);
                 event.getPlayer().sendActionBar(
                         MINI_MESSAGE.deserialize(getConfig()
@@ -171,6 +174,7 @@ public final class CodFrame extends JavaPlugin implements Listener {
                                 .replace("<0>", getPlayerName(uuid))
                         )
                 );
+
                 if (frame.getItem().hasItemMeta()) {
                     openBook(frame, event.getPlayer());
                     sendChatPreview(frame.getItem(), event.getPlayer());
@@ -198,3 +202,4 @@ public final class CodFrame extends JavaPlugin implements Listener {
         }
     }
 }
+
