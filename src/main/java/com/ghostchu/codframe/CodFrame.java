@@ -17,6 +17,7 @@ import org.bukkit.event.entity.EntityDamageByBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
+import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -25,12 +26,16 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 public final class CodFrame extends JavaPlugin implements Listener {
     private final NamespacedKey KEY = new NamespacedKey(this, "owner");
     private final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
+    private final Map<UUID, Long> cooldowns = new HashMap<>();
+    private static final long COOLDOWN = 3 * 60 * 1000L;
 
     @Override
     public void onEnable() {
@@ -157,31 +162,58 @@ public final class CodFrame extends JavaPlugin implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true)
-    public void interactFrame(PlayerInteractEntityEvent event) {
-        if (event.getRightClicked() instanceof ItemFrame frame && event.getHand() == EquipmentSlot.HAND) {
-            Optional<UUID> uuid = queryProtection(frame);
-            /*
-            if (event.getPlayer().isSneaking()) { // Sneak Toggle Protection
-                event.setCancelled(true);
-                playerDoProtection(event.getPlayer(), frame);
-            }
-            */
-            if (uuid.isPresent()) { // Preview normally
-                event.setCancelled(true);
-                event.getPlayer().sendActionBar(
-                        MINI_MESSAGE.deserialize(getConfig()
-                                .getString("messages.general.owner-info", "")
-                                .replace("<0>", getPlayerName(uuid))
-                        )
-                );
-
-                if (frame.getItem().hasItemMeta()) {
-                    openBook(frame, event.getPlayer());
-                    sendChatPreview(frame.getItem(), event.getPlayer());
-                }
-            }
-        }
+    public void onFramePlace(HangingPlaceEvent event) {
+        if (!(event.getEntity() instanceof ItemFrame)) {
+          return;
     }
+
+    Player player = event.getPlayer();
+    long now = System.currentTimeMillis();
+    long last = cooldowns.getOrDefault(player.getUniqueId(), 0L);
+
+    if (now - last >= COOLDOWN) {
+      cooldowns.put(player.getUniqueId(), now);
+
+      player.sendMessage(
+              MINI_MESSAGE.deserialize(
+                      getConfig().getString("messages.frame.place-hint", "")
+                                      )
+                        );
+    }
+  }
+
+    @EventHandler(ignoreCancelled = true)
+    public void interactFrame(PlayerInteractEntityEvent event) {
+            if (!(event.getRightClicked() instanceof ItemFrame frame)
+                || event.getHand() != EquipmentSlot.HAND) {
+              return;
+    }
+
+    if (getConfig().getBoolean("settings.sneak-toggle-protection", false)
+        && event.getPlayer().isSneaking()) {
+      event.setCancelled(true);
+      playerDoProtection(event.getPlayer(), frame);
+      return;
+    }
+
+    Optional<UUID> uuid = queryProtection(frame);
+
+    if (uuid.isPresent()) { // Preview normally
+      event.setCancelled(true);
+      event.getPlayer().sendActionBar(
+              MINI_MESSAGE.deserialize(
+                      getConfig()
+                              .getString("messages.general.owner-info", "")
+                              .replace("<0>", getPlayerName(uuid))
+                                      )
+                                     );
+
+      if (frame.getItem().hasItemMeta()) {
+        openBook(frame, event.getPlayer());
+        sendChatPreview(frame.getItem(), event.getPlayer());
+      }
+    }
+  }
 
     private void sendChatPreview(ItemStack item, Player player) {
         player.sendMessage(MINI_MESSAGE.deserialize(getConfig().getString("messages.general.hover-preview", "")).hoverEvent(item.asHoverEvent()));
